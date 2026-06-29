@@ -1,9 +1,16 @@
 name: Publish
 
-# Publishes @runchat/cli to npm when a GitHub Release is published.
-# Requires:
-#   - the `runchat` org/scope to exist on npm
-#   - an NPM_TOKEN repo secret (Automation token with publish rights)
+# Publishes @runchat/cli to npm via npm Trusted Publishing (OIDC) when a
+# GitHub Release is published. No NPM_TOKEN secret needed — npm verifies this
+# workflow's GitHub OIDC identity. Provenance is generated automatically.
+#
+# One-time setup on npmjs.com:
+#   1. The `runchat` org/scope must exist.
+#   2. On @runchat/cli → Settings → Trusted Publishing, add a GitHub Actions
+#      publisher: owner/repo = runchat-app/runchat-cli, workflow = publish.yml
+#      (leave Environment blank unless you set `environment:` below).
+#   For a brand-new package, do ONE manual `npm publish --access public` first
+#   to create it, then add the trusted publisher for all future releases.
 on:
   release:
     types: [published]
@@ -14,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # enables npm provenance
+      id-token: write # required for OIDC trusted publishing (+ provenance)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,6 +31,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Trusted publishing requires npm >= 11.5.1; Node 22 ships an older npm.
+      - run: npm install -g npm@latest
+      - run: npm publish --access public
