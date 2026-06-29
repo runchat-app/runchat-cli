@@ -1,0 +1,48 @@
+{
+  "name": "@runchat/cli",
+  "version": "0.1.0",
+  "description": "Command-line interface for Runchat — build and run node-based AI workflows from the terminal. A faithful CLI port of the Runchat MCP server.",
+  "type": "module",
+  "bin": {
+    "runchat": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "AGENTS.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/cli.js",
+    "test": "npm run build && node --test test/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "runchat",
+    "mcp",
+    "ai",
+    "agent",
+    "cli",
+    "workflow",
+    "canvas",
+    "automation"
+  ],
+  "author": "Runchat",
+  "license": "MIT",
+  "homepage": "https://runchat.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/runchat-app/runchat-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/runchat-app/runchat-cli/issues"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

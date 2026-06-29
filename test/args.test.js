@@ -1,0 +1,65 @@
+// Pure-function tests for the arg parser and value coercion. No network/fs.
+// Run with: npm test  (builds first, then `node --test test/`)
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { parseArgs, normalizeFlag, coerceValue } from "../dist/args.js";
+import { buildToolArgs } from "../dist/commands/call.js";
+
+test("normalizeFlag strips dashes and maps kebab to snake", () => {
+  assert.equal(normalizeFlag("--runchat-id"), "runchat_id");
+  assert.equal(normalizeFlag("--runchat_id"), "runchat_id");
+  assert.equal(normalizeFlag("-x"), "x");
+});
+
+test("parseArgs handles value, =, boolean and positionals", () => {
+  const r = parseArgs(["create_node", "--type", "promptNode", "--locked", "--n=3"]);
+  assert.deepEqual(r.positionals, ["create_node"]);
+  assert.equal(r.flags.type, "promptNode");
+  assert.equal(r.flags.locked, true);
+  assert.equal(r.flags.n, "3");
+});
+
+test("parseArgs collects repeated flags into an array", () => {
+  const r = parseArgs(["x", "--tag", "a", "--tag", "b"]);
+  assert.deepEqual(r.flags.tag, ["a", "b"]);
+});
+
+test("parseArgs respects -- terminator", () => {
+  const r = parseArgs(["run", "--", "--not-a-flag", "pos"]);
+  assert.deepEqual(r.positionals, ["run", "--not-a-flag", "pos"]);
+});
+
+test("coerceValue parses JSON-ish values but keeps bare strings", () => {
+  assert.equal(coerceValue("hello"), "hello");
+  assert.equal(coerceValue("gpt-4"), "gpt-4");
+  assert.equal(coerceValue("5"), 5);
+  assert.equal(coerceValue("true"), true);
+  assert.equal(coerceValue("null"), null);
+  assert.deepEqual(coerceValue("[1,2]"), [1, 2]);
+  assert.deepEqual(coerceValue('{"a":1}'), { a: 1 });
+});
+
+test("coerceValue keeps id-like numeric strings as strings", () => {
+  // Leading zero would be lost by a naive Number() — must stay a string.
+  assert.equal(coerceValue("007"), "007");
+  assert.equal(coerceValue("123abc"), "123abc");
+});
+
+test("buildToolArgs coerces flags and merges --json", () => {
+  const args = buildToolArgs({
+    json: '{"a":1,"b":2}',
+    b: "3",
+    tags: ["x", "y"],
+    locked: true,
+  });
+  assert.equal(args.a, 1);
+  assert.equal(args.b, 3); // flag overrides --json
+  assert.deepEqual(args.tags, ["x", "y"]);
+  assert.equal(args.locked, true);
+});
+
+test("buildToolArgs ignores reserved CLI flags", () => {
+  const args = buildToolArgs({ raw: true, base_url: "http://x", runchat_id: "abc" });
+  assert.deepEqual(args, { runchat_id: "abc" });
+});
